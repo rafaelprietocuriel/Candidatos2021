@@ -1,0 +1,120 @@
+# grep_categorias
+
+```{r}
+library(googlesheets4)
+
+categorias <- read_sheet("https://docs.google.com/spreadsheets/d/1_MOikBmyRsZ3pPqUy5QY4YJzUcgr7SCOGmUFuXZ_J5I/edit?usp=sharing")
+propuestas <- read_sheet("https://docs.google.com/spreadsheets/d/1_MOikBmyRsZ3pPqUy5QY4YJzUcgr7SCOGmUFuXZ_J5I/edit?usp=sharing", sheet = "PROPUESTAS")
+
+library(tidyverse)
+library(magrittr)
+propuestas %<>% 
+  select(-PROPUESTA_GENERO)
+```
+
+```{r}
+library(stringi)
+categorias$palabras <- tolower(categorias$palabras)
+propuestas$MOTIVO_CARGO_PUBLICO <- tolower(propuestas$MOTIVO_CARGO_PUBLICO)
+propuestas$PROPUESTA_1 <- tolower(propuestas$PROPUESTA_1)
+propuestas$PROPUESTA_2 <- tolower(propuestas$PROPUESTA_2)
+
+categorias$palabras <- stri_trans_general(categorias$palabras,"Latin-ASCII")
+propuestas$MOTIVO_CARGO_PUBLICO <- stri_trans_general(propuestas$MOTIVO_CARGO_PUBLICO,"Latin-ASCII")
+propuestas$PROPUESTA_1 <- stri_trans_general(propuestas$PROPUESTA_1,"Latin-ASCII")
+propuestas$PROPUESTA_2 <- stri_trans_general(propuestas$PROPUESTA_2,"Latin-ASCII")
+
+categorias$categoria <- paste0("X_", categorias$categoria)
+```
+
+```{r}
+grep_categoria_list <- list()
+for(i in 1:nrow(categorias)) {
+  grep_index <- grep(categorias$palabras[i], propuestas$MOTIVO_CARGO_PUBLICO)
+  #PROPUESTA_1[[categorias$palabras[i]]] <- 0
+  #PROPUESTA_1[[categorias$palabras[i]]][grep_index] <- 1
+  grep_indicator <- rep(0, nrow(propuestas))
+  grep_indicator[grep_index] <- 1
+  
+  grep_categoria_list[[categorias$categoria[i]]] <- apply(
+    cbind(grep_categoria_list[[categorias$categoria[i]]], grep_indicator), 
+    1, function(x) {(sum(x) > 0) * 1})
+}
+
+motivo_list <- grep_categoria_list
+MOTIVO <- cbind(propuestas, as.data.frame(motivo_list))
+
+#ss <- gs4_create("PROPUESTA_1")
+ss <- as_sheets_id("https://docs.google.com/spreadsheets/d/1_MOikBmyRsZ3pPqUy5QY4YJzUcgr7SCOGmUFuXZ_J5I/edit#gid=1324771065")
+sheet_write(MOTIVO, ss) 
+gs4_browse(ss)
+```
+
+```{r}
+grep_categoria_list <- list()
+for(i in 1:nrow(categorias)) {
+  grep_index <- grep(categorias$palabras[i], propuestas$PROPUESTA_1)
+  #PROPUESTA_1[[categorias$palabras[i]]] <- 0
+  #PROPUESTA_1[[categorias$palabras[i]]][grep_index] <- 1
+  grep_indicator <- rep(0, nrow(propuestas))
+  grep_indicator[grep_index] <- 1
+  
+  grep_categoria_list[[categorias$categoria[i]]] <- apply(
+    cbind(grep_categoria_list[[categorias$categoria[i]]], grep_indicator), 
+    1, function(x) {(sum(x) > 0) * 1})
+}
+
+propuesta_1_list <- grep_categoria_list
+PROPUESTA_1 <- cbind(propuestas, as.data.frame(propuesta_1_list))
+
+#ss <- gs4_create("PROPUESTA_1")
+ss <- as_sheets_id("https://docs.google.com/spreadsheets/d/1_MOikBmyRsZ3pPqUy5QY4YJzUcgr7SCOGmUFuXZ_J5I/edit#gid=1324771065")
+sheet_write(PROPUESTA_1, ss) 
+gs4_browse(ss)
+```
+
+```{r}
+grep_categoria_list <- list()
+for(i in 1:nrow(categorias)) {
+  grep_index <- grep(categorias$palabras[i], propuestas$PROPUESTA_2)
+  #PROPUESTA_1[[categorias$palabras[i]]] <- 0
+  #PROPUESTA_1[[categorias$palabras[i]]][grep_index] <- 1
+  grep_indicator <- rep(0, nrow(propuestas))
+  grep_indicator[grep_index] <- 1
+  
+  grep_categoria_list[[categorias$categoria[i]]] <- apply(
+    cbind(grep_categoria_list[[categorias$categoria[i]]], grep_indicator), 
+    1, function(x) {(sum(x) > 0) * 1})
+}
+
+propuesta_2_list <- grep_categoria_list
+PROPUESTA_2 <- cbind(propuestas, as.data.frame(propuesta_2_list))
+
+#ss <- gs4_create("PROPUESTA_1")
+ss <- as_sheets_id("https://docs.google.com/spreadsheets/d/1_MOikBmyRsZ3pPqUy5QY4YJzUcgr7SCOGmUFuXZ_J5I/edit#gid=1324771065")
+sheet_write(PROPUESTA_2, ss) 
+gs4_browse(ss)
+```
+
+```{r}
+library(reticulate)
+```
+
+```{python}
+categorias = r.motivo_list.keys()
+
+total_list = dict()
+for cat in categorias:
+  total_list[cat] = r.motivo_list[cat] + r.propuesta_1_list[cat] + r.propuesta_2_list[cat]
+```
+
+```{r}
+total_list <- py$total_list
+TOTAL <- cbind(propuestas, as.data.frame(total_list))
+
+#ss <- gs4_create("PROPUESTA_1")
+ss <- as_sheets_id("https://docs.google.com/spreadsheets/d/1_MOikBmyRsZ3pPqUy5QY4YJzUcgr7SCOGmUFuXZ_J5I/edit#gid=1324771065")
+sheet_write(TOTAL, ss) 
+gs4_browse(ss)
+```
+
